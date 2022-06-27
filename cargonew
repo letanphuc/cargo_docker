@@ -1,0 +1,70 @@
+#! /bin/bash
+docker run --user $(id -u):$(id -g) -v $PWD:/work rust bash -c "cd /work && cargo new --vcs git $1"
+
+devcontainer_dir=$devcontainer_dir
+mkdir -p "$devcontainer_dir"
+
+cat > "$devcontainer_dir/Dockerfile" <<EOF
+# See here for image contents: https://github.com/microsoft/vscode-dev-containers/tree/v0.231.5/containers/rust/.devcontainer/base.Dockerfile
+
+# [Choice] Debian OS version (use bullseye on local arm64/Apple Silicon): buster, bullseye
+ARG VARIANT="buster"
+FROM mcr.microsoft.com/vscode/devcontainers/rust:0-\${VARIANT}
+
+# [Optional] Uncomment this section to install additional packages.
+# RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
+#     && apt-get -y install --no-install-recommends <your-package-list-here>
+EOF
+
+
+cat > "$devcontainer_dir/devcontainer.json" <<EOF
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the README at:
+// https://github.com/microsoft/vscode-dev-containers/tree/v0.231.5/containers/rust
+{
+    "name": "Rust",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "args": {
+            // Use the VARIANT arg to pick a Debian OS version: buster, bullseye
+            // Use bullseye when on local on arm64/Apple Silicon.
+            "VARIANT": "bullseye"
+        }
+    },
+    "runArgs": [
+        "--cap-add=SYS_PTRACE",
+        "--security-opt",
+        "seccomp=unconfined"
+    ],
+
+    // Set *default* container specific settings.json values on container create.
+    "settings": {
+        "lldb.executable": "/usr/bin/lldb",
+        // VS Code don't watch files under ./target
+        "files.watcherExclude": {
+            "**/target/**": true
+        },
+        "rust-analyzer.checkOnSave.command": "clippy"
+    },
+
+    // Add the IDs of extensions you want installed when the container is created.
+    "extensions": [
+        "vadimcn.vscode-lldb",
+        "mutantdino.resourcemonitor",
+        "matklad.rust-analyzer",
+        "tamasfe.even-better-toml",
+        "rust-lang.rust-analyzer",
+        "serayuzgur.crates"
+    ],
+
+    // Use 'forwardPorts' to make a list of ports inside the container available locally.
+    // "forwardPorts": [],
+
+    // Use 'postCreateCommand' to run commands after the container is created.
+    // "postCreateCommand": "rustc --version",
+
+    // Comment out to connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
+    "remoteUser": "vscode"
+}
+EOF
+
+command -v code "$PWD/$1" >/dev/null 2>&1 || { echo "code is not installed, open it by yourself" >&2}
